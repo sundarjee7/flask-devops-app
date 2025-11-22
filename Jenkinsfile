@@ -2,63 +2,60 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "flask-app:latest"
-        CONTAINER_NAME = "flask-app-container"
-        EMAIL_RECIPIENT = "rsundarjee2@gmail.com"
+        DOCKER_IMAGE = "flask-app:latest"
     }
 
     stages {
 
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/sundarjee7/flask-devops-app.git'
+                git branch: 'main', url: 'https://github.com/YOUR_USERNAME/YOUR_REPO.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'pip install -r requirements.txt'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'pytest tests/'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME} ."
+                sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
 
-        stage('Run Pytest inside Docker') {
+        stage('Run Docker Container') {
             steps {
+                // Stop old container if running
                 sh '''
-                    echo "Running tests inside Docker container..."
-                    docker run --rm \
-                        -v $WORKSPACE:/app \
-                        -w /app \
-                        ${IMAGE_NAME} pytest tests/
+                if [ "$(docker ps -aq -f name=flask-container)" ]; then
+                    docker rm -f flask-container || true
+                fi
                 '''
-            }
-        }
 
-        stage('Stop Old Container') {
-            steps {
-                sh '''
-                    if [ $(docker ps -aq -f name=${CONTAINER_NAME}) ]; then
-                        docker stop ${CONTAINER_NAME} || true
-                        docker rm ${CONTAINER_NAME} || true
-                    fi
-                '''
-            }
-        }
-
-        stage('Run New Container') {
-            steps {
-                sh '''
-                    docker run -d --name ${CONTAINER_NAME} -p 5000:5000 ${IMAGE_NAME}
-                '''
+                // Run new container
+                sh "docker run -d -p 5000:5000 --name flask-container ${DOCKER_IMAGE}"
             }
         }
     }
 
     post {
+        success {
+            mail to: 'suraine36@gmail.com',
+                 subject: "Jenkins Build Successful",
+                 body: "Your Flask app has been built, tested, and deployed successfully."
+        }
         failure {
-            mail to: "${EMAIL_RECIPIENT}",
-                 subject: "Jenkins Pipeline Failed",
-                 body: "The Jenkins pipeline has failed. Please check the logs."
+            mail to: 'suraine36@gmail.com',
+                 subject: "Jenkins Build Failed",
+                 body: "The build has failed. Please check Jenkins console output."
         }
     }
 }

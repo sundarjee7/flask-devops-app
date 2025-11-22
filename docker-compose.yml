@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+
+  flask-app:
+    build: .
+    container_name: flask-app-container
+    ports:
+      - "5000:5000"
+    restart: always
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins-server
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+
+  redis:
+    image: redis:latest
+    container_name: redis-server
+    ports:
+      - "6379:6379"
+    restart: always
+
+volumes:
+  jenkins_home:
+

@@ -2,67 +2,72 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "flask-app"
+        IMAGE_NAME = "flask-app:latest"
         CONTAINER_NAME = "flask-app-container"
-        HOST_PORT = "5001"
-        CONTAINER_PORT = "5000"
+        MINIKUBE_CONTEXT = "minikube"
+        EMAIL_RECIPIENT = "developer@example.com"  // replace with your email
     }
 
     stages {
         stage('Checkout SCM') {
             steps {
-                checkout scm
+                git branch: 'main',
+                    url: 'https://github.com/sundarjee7/flask-devops-app.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh """
-                docker build -t ${IMAGE_NAME}:latest .
-                """
+                script {
+                    sh "docker build -t ${IMAGE_NAME} ."
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh """
-                if [ -f test_app.py ]; then
-                    echo "Running pytest..."
-                    pytest test_app.py || exit 1
-                else
-                    echo "No tests found, skipping..."
-                fi
-                """
+                script {
+                    sh '''
+                        echo "Running pytest inside Docker container..."
+                        docker run --rm -v $PWD:/app -w /app ${IMAGE_NAME} pytest test_app.py
+                    '''
+                }
             }
         }
 
         stage('Stop & Remove Existing Container') {
             steps {
-                sh """
-                if [ \$(docker ps -aq -f name=${CONTAINER_NAME}) ]; then
-                    docker stop ${CONTAINER_NAME}
-                    docker rm ${CONTAINER_NAME}
-                fi
-                """
+                script {
+                    sh '''
+                        if [ $(docker ps -a -q -f name=${CONTAINER_NAME}) ]; then
+                            echo "Stopping and removing existing container..."
+                            docker stop ${CONTAINER_NAME}
+                            docker rm ${CONTAINER_NAME}
+                        else
+                            echo "No existing container found"
+                        fi
+                    '''
+                }
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                sh """
-                docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:latest
-                """
+                script {
+                    sh "docker run -d --name ${CONTAINER_NAME} -p 5001:5000 ${IMAGE_NAME}"
+                }
             }
         }
 
         stage('Deploy to Minikube') {
             steps {
-                sh """
-                eval \$(minikube -p minikube docker-env)
-                kubectl apply -f flask-deployment.yaml
-                kubectl apply -f flask-service.yaml
-                kubectl get pods
-                """
+                script {
+                    sh '''
+                        echo "Deploying to Minikube..."
+                        kubectl apply -f flask-deployment.yaml
+                        kubectl apply -f flask-service.yaml
+                    '''
+                }
             }
         }
     }
@@ -71,12 +76,12 @@ pipeline {
         success {
             echo 'Pipeline completed successfully!'
         }
+
         failure {
             echo 'Pipeline failed! Sending email notification...'
-            // Uncomment below if you have Jenkins Email Extension configured
-            // mail to: 'your-email@example.com',
-            //      subject: "Jenkins Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            //      body: "Check Jenkins for details: ${env.BUILD_URL}"
+            mail to: "${EMAIL_RECIPIENT}",
+                 subject: "Jenkins Pipeline Failed: ${JOB_NAME}",
+                 body: "The Jenkins pipeline for ${JOB_NAME} failed. Please check the console output."
         }
     }
 }

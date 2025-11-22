@@ -26,7 +26,10 @@ pipeline {
             steps {
                 sh '''
                     echo "Running tests inside Docker container..."
-                    docker run --rm -v $PWD:/app -w /app ${IMAGE_NAME} pytest test_app.py
+                    docker run --rm \
+                        -v $WORKSPACE:/app \
+                        -w /app \
+                        ${IMAGE_NAME} pytest tests/
                 '''
             }
         }
@@ -44,7 +47,9 @@ pipeline {
 
         stage('Run New Container') {
             steps {
-                sh "docker run -d --name ${CONTAINER_NAME} -p 5000:5000 ${IMAGE_NAME}"
+                sh '''
+                    docker run -d --name ${CONTAINER_NAME} -p 5000:5000 ${IMAGE_NAME}
+                '''
             }
         }
     }
@@ -52,11 +57,8 @@ pipeline {
     post {
         failure {
             mail to: "${EMAIL_RECIPIENT}",
-                 subject: "❌ Jenkins Pipeline Failed",
-                 body: "Your Flask CI/CD pipeline failed. Please check Jenkins logs."
-        }
-        success {
-            echo "✔ Pipeline succeeded!"
+                 subject: "Jenkins Pipeline Failed",
+                 body: "The Jenkins pipeline has failed. Please check the logs."
         }
     }
 }

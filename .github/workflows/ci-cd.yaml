@@ -1,0 +1,38 @@
+name: Flask CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Docker image
+      run: |
+        docker build -t flask-app:1.0 .
+
+    - name: Copy K8s manifests
+      run: |
+        cp flask-deployment.yaml flask-service.yaml .
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: v1.27.0
+
+    - name: Deploy to Minikube
+      run: |
+        # Use Minikube's Docker daemon
+        eval $(minikube docker-env)
+        kubectl apply -f flask-deployment.yaml
+        kubectl apply -f flask-service.yaml
+        kubectl rollout restart deployment flask-app-deployment

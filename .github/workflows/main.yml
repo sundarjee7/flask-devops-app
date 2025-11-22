@@ -30,7 +30,7 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:/app -w /app flask-app:latest pytest test_app.py
 
-      # 5. Optional: Run container for manual testing (remove deployment if not using Minikube)
+      # 5. Optional: Run container for manual testing
       - name: Run Docker container
         run: |
           docker run -d --name flask-app-container -p 5000:5000 flask-app:latest

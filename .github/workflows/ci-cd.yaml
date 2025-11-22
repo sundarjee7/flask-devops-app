@@ -20,10 +20,6 @@ jobs:
       run: |
         docker build -t flask-app:1.0 .
 
-    - name: Copy K8s manifests
-      run: |
-        cp flask-deployment.yaml flask-service.yaml .
-
     - name: Set up kubectl
       uses: azure/setup-kubectl@v3
       with:

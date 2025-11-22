@@ -1,0 +1,14 @@
+# Ignore Python virtual environment
+venv/
+
+# Ignore Git repo data
+.git/
+
+# Ignore local GitHub Actions runner
+actions-runner/
+
+# Ignore OS and cache files
+*.pyc
+__pycache__/
+*.ini
+*.log

@@ -13,8 +13,24 @@ spec:
         app: flask-app
     spec:
       containers:
-      - name: flask-app
-        image: flask-app:1.0
-        ports:
-        - containerPort: 5000
-
+        - name: flask-app
+          image: flask-app:latest  # The image tag will be updated by GitHub Actions
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-app-service
+spec:
+  selector:
+    app: flask-app
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+      nodePort: 30001

@@ -1,0 +1,6 @@
+# Ignore self-hosted GitHub Actions runner
+actions-runner/
+venv/
+__pycache__/
+*.pyc
+

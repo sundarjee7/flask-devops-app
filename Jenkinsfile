@@ -9,7 +9,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/YOUR_USERNAME/YOUR_REPO.git'
+                 git url: 'https://github.com/sundarjee7/flask-devops-app.git', branch: 'main'
             }
         }
 

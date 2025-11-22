@@ -1,4 +1,9 @@
-from app import srtechopsmobilenumber
+# test_app.py
+from app import app
 
-def test_srtechopsmobilenumber():
-    assert srtechopsmobilenumber() == '<h1 style="color:red;">FOR TRAINING ENQUIRY: +91 9688023053</h1>'
+def test_home():
+    client = app.test_client()
+    response = client.get('/')
+    assert response.status_code == 200
+    assert b"Welcome to My Flask App Home Page" in response.data
+

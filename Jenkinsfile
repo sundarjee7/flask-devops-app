@@ -4,12 +4,12 @@ pipeline {
     environment {
         IMAGE_NAME = "flask-app:latest"
         CONTAINER_NAME = "flask-app-container"
-        MINIKUBE_CONTEXT = "minikube"
-        EMAIL_RECIPIENT = "developer@example.com"  // replace with your email
+        EMAIL_RECIPIENT = "rsundarjee2@gmail.com"
     }
 
     stages {
-        stage('Checkout SCM') {
+
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/sundarjee7/flask-devops-app.git'
@@ -18,70 +18,45 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh "docker build -t ${IMAGE_NAME} ."
-                }
+                sh "docker build -t ${IMAGE_NAME} ."
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Pytest inside Docker') {
             steps {
-                script {
-                    sh '''
-                        echo "Running pytest inside Docker container..."
-                        docker run --rm -v $PWD:/app -w /app ${IMAGE_NAME} pytest test_app.py
-                    '''
-                }
+                sh '''
+                    echo "Running tests inside Docker container..."
+                    docker run --rm -v $PWD:/app -w /app ${IMAGE_NAME} pytest test_app.py
+                '''
             }
         }
 
-        stage('Stop & Remove Existing Container') {
+        stage('Stop Old Container') {
             steps {
-                script {
-                    sh '''
-                        if [ $(docker ps -a -q -f name=${CONTAINER_NAME}) ]; then
-                            echo "Stopping and removing existing container..."
-                            docker stop ${CONTAINER_NAME}
-                            docker rm ${CONTAINER_NAME}
-                        else
-                            echo "No existing container found"
-                        fi
-                    '''
-                }
+                sh '''
+                    if [ $(docker ps -aq -f name=${CONTAINER_NAME}) ]; then
+                        docker stop ${CONTAINER_NAME} || true
+                        docker rm ${CONTAINER_NAME} || true
+                    fi
+                '''
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Run New Container') {
             steps {
-                script {
-                    sh "docker run -d --name ${CONTAINER_NAME} -p 5001:5000 ${IMAGE_NAME}"
-                }
-            }
-        }
-
-        stage('Deploy to Minikube') {
-            steps {
-                script {
-                    sh '''
-                        echo "Deploying to Minikube..."
-                        kubectl apply -f flask-deployment.yaml
-                        kubectl apply -f flask-service.yaml
-                    '''
-                }
+                sh "docker run -d --name ${CONTAINER_NAME} -p 5000:5000 ${IMAGE_NAME}"
             }
         }
     }
 
     post {
-        success {
-            echo 'Pipeline completed successfully!'
-        }
-
         failure {
-            echo 'Pipeline failed! Sending email notification...'
             mail to: "${EMAIL_RECIPIENT}",
-                 subject: "Jenkins Pipeline Failed: ${JOB_NAME}",
-                 body: "The Jenkins pipeline for ${JOB_NAME} failed. Please check the console output."
+                 subject: "❌ Jenkins Pipeline Failed",
+                 body: "Your Flask CI/CD pipeline failed. Please check Jenkins logs."
+        }
+        success {
+            echo "✔ Pipeline succeeded!"
         }
     }
 }

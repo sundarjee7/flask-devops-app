@@ -2,23 +2,23 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME = "flask-app"
-        APP_PORT = "5001"
-        IMAGE_TAG = "${APP_NAME}:${BUILD_NUMBER}"
-        CONTAINER_NAME = "${APP_NAME}-container"
+        IMAGE_NAME = "flask-app"
+        CONTAINER_NAME = "flask-app-container"
+        HOST_PORT = "5001"
+        CONTAINER_PORT = "5000"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                git branch: 'main', url: 'https://github.com/sundarjee7/flask-devops-app.git'
+                checkout scm
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 sh """
-                docker build -t ${IMAGE_TAG} .
+                docker build -t ${IMAGE_NAME}:latest .
                 """
             }
         }
@@ -37,7 +37,7 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 sh """
-                docker run -d --name ${CONTAINER_NAME} -p ${APP_PORT}:5000 ${IMAGE_TAG}
+                docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:latest
                 """
             }
         }
@@ -45,27 +45,36 @@ pipeline {
         stage('Health Check') {
             steps {
                 sh """
+                echo "Waiting for Flask app to start..."
+                sleep 5  # Wait for the app to initialize
                 echo "Checking if app is running..."
-                curl -f http://localhost:${APP_PORT} || exit 1
+                
+                # Retry up to 5 times
+                for i in {1..5}; do
+                    curl -f http://localhost:${HOST_PORT} && break || sleep 2
+                done
                 """
             }
         }
 
         stage('Cleanup Old Images') {
             steps {
-                sh "docker image prune -f"
+                sh """
+                docker image prune -f
+                """
             }
         }
     }
 
     post {
         success {
-            echo "Pipeline completed successfully! App running at http://localhost:${APP_PORT}"
+            echo "Pipeline succeeded. Flask app is running on port ${HOST_PORT}."
         }
         failure {
             echo "Pipeline failed. Check logs for errors."
         }
     }
 }
+
 
 

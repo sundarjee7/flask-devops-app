@@ -23,6 +23,19 @@ pipeline {
             }
         }
 
+        stage('Run Tests') {
+            steps {
+                sh """
+                if [ -f test_app.py ]; then
+                    echo "Running pytest..."
+                    pytest test_app.py || exit 1
+                else
+                    echo "No tests found, skipping..."
+                fi
+                """
+            }
+        }
+
         stage('Stop & Remove Existing Container') {
             steps {
                 sh """
@@ -42,25 +55,13 @@ pipeline {
             }
         }
 
-        stage('Health Check') {
+        stage('Deploy to Minikube') {
             steps {
                 sh """
-                echo "Waiting for Flask app to start..."
-                sleep 5  # Wait for the app to initialize
-                echo "Checking if app is running..."
-                
-                # Retry up to 5 times
-                for i in {1..5}; do
-                    curl -f http://localhost:${HOST_PORT} && break || sleep 2
-                done
-                """
-            }
-        }
-
-        stage('Cleanup Old Images') {
-            steps {
-                sh """
-                docker image prune -f
+                eval \$(minikube -p minikube docker-env)
+                kubectl apply -f flask-deployment.yaml
+                kubectl apply -f flask-service.yaml
+                kubectl get pods
                 """
             }
         }
@@ -68,13 +69,15 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline succeeded. Flask app is running on port ${HOST_PORT}."
+            echo 'Pipeline completed successfully!'
         }
         failure {
-            echo "Pipeline failed. Check logs for errors."
+            echo 'Pipeline failed! Sending email notification...'
+            // Uncomment below if you have Jenkins Email Extension configured
+            // mail to: 'your-email@example.com',
+            //      subject: "Jenkins Pipeline Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            //      body: "Check Jenkins for details: ${env.BUILD_URL}"
         }
     }
 }
-
-
 

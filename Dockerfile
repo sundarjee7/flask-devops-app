@@ -8,4 +8,7 @@ RUN pip install pytest
 
 COPY app.py .
 COPY test_app.py .
+
+# Add this line to run Flask when the container starts
+CMD ["python", "app.py"]
 	

@@ -4,3 +4,5 @@ venv/
 __pycache__/
 *.pyc
 
+minikube_latest_amd64.deb
+minikube_latest_amd64.deb

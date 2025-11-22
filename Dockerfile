@@ -7,7 +7,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install pytest
 
 COPY app.py .
-COPY test_app.py .   # <-- add this line
-
-CMD ["python", "app.py"]
-
+COPY test_app.py .
+	

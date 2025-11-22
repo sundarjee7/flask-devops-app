@@ -1,38 +1,36 @@
 name: Flask CI/CD Pipeline
 
-# Trigger workflow on push to main branch
 on:
   push:
     branches:
-      - main
+      - main  # Trigger pipeline on push to main branch
 
 jobs:
-  build-and-deploy:
-    # Use your self-hosted runner
-    runs-on: self-hosted
-
+  build-deploy:
+    runs-on: self-hosted  # Use your self-hosted runner
     steps:
-      # Step 1: Checkout the repo
+      # 1️⃣ Checkout the code from GitHub
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Docker (self-hosted should already have Docker installed)
+      # 2️⃣ Set up Docker environment to point to Minikube
+      - name: Configure Docker for Minikube
+        run: |
+          eval $(minikube -p minikube docker-env)
+      
+      # 3️⃣ Build the Docker image
       - name: Build Docker image
         run: |
-          docker build -t flask-app:1.0 .
+          docker build -t flask-app:latest .
 
-      # Step 3: Apply Kubernetes manifests
+      # 4️⃣ Apply Kubernetes manifests
       - name: Deploy to Minikube
-        env:
-          KUBECONFIG: ${{ github.workspace }}/kubeconfig
         run: |
           kubectl apply -f flask-deployment.yaml
           kubectl apply -f flask-service.yaml
 
-      # Step 4: Optional - verify pods are running
-      - name: Check K8s pods
-        run: kubectl get pods
+      # 5️⃣ Optional: Verify pods are running
+      - name: Get Pods
+        run: |
+          kubectl get pods
 
-      # Step 5: Optional - show service URL
-      - name: Get service URL
-        run: minikube service flask-app-service --url

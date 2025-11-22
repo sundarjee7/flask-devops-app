@@ -7,8 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install pytest
 
 COPY app.py .
-COPY test_app.py .
+COPY tests/ tests/
 
-# Add this line to run Flask when the container starts
 CMD ["python", "app.py"]
-	
+

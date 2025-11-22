@@ -1,20 +1,21 @@
-from flask import Flask
-import os
+from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return '<h1 style="color: blue;">Welcome to My Flask App Home Page Designed By SUNDARJEE R</h1>'
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
 
-@app.route("/info")
-def srtechopsinfo():
-    return '<h1 style="color: violet;">****Welcome to SUNDARJEE DevOps Journey---Thank You</h1>'
+        # simple check (no database needed)
+        if username == "admin" and password == "admin":
+            return "Login Successful!"
+        else:
+            return "Invalid Credentials!"
 
-@app.route("/contact")
-def srtechopsmobilenumber():
-    return '<h1 style="color:red;">FOR TRAINING ENQUIRY: +91 9688023053</h1>'
+    return render_template("login.html")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(host="0.0.0.0", port=5000)
+

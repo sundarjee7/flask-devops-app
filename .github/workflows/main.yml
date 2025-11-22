@@ -24,7 +24,7 @@ jobs:
 
       - name: Run tests
         run: |
-          echo "Add your test commands here" 
+          pytest test_app.py 
 
       - name: Build Docker image
         run: |

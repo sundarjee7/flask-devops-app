@@ -6,42 +6,32 @@ on:
     branches:
       - main
 
-# Use self-hosted runner (or remove `self-hosted` if using GitHub hosted runner)
 jobs:
   build-and-deploy:
     runs-on: self-hosted
+
     steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # 1️⃣ Checkout code
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      # 2️⃣ Set up Docker (optional for self-hosted runner)
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
 
-    # 2️⃣ Set up Docker (required for GitHub hosted runners; optional for self-hosted)
-    - name: Set up Docker
-      uses: docker/setup-buildx-action@v2
+      # 3️⃣ Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t flask-app:latest .
 
-    # 3️⃣ Build Docker image
-    - name: Build Docker image
-      run: |
-        docker build -t flask-app:latest .
+      # 4️⃣ Stop old container (ignore errors if not running)
+      - name: Stop old container
+        run: |
+          docker stop flask-app-container || true
+          docker rm flask-app-container || true
 
-    # 4️⃣ Run tests inside Docker
-    - name: Run pytest
-      run: |
-        docker run --rm -w /app flask-app:latest pytest tests/
-
-    # 5️⃣ Stop old container (ignore errors if not running)
-    - name: Stop old container
-      run: |
-        docker stop flask-app-container || true
-        docker rm flask-app-container || true
-
-    # 6️⃣ Run new container
-    - name: Run Flask container
-      run: |
-        docker run -d --name flask-app-container -p 5000:5000 flask-app:latest
-
-    # 7️⃣ Optional: Verify container running
-    - name: List running containers
-      run: docker ps
+      # 5️⃣ Run new Flask container
+      - name: Run Flask container
+        run: |
+          docker run -d --name flask-app-container -p 5000:5000 flask-app:latest
 

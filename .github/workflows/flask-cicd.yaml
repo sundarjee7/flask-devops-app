@@ -3,46 +3,43 @@ name: Flask CI/CD Pipeline
 on:
   push:
     branches:
-      - main  # Trigger pipeline on push to main branch
+      - main
 
 jobs:
   build-deploy:
-    runs-on: self-hosted  # Your self-hosted runner
+    runs-on: self-hosted
     steps:
-      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2️⃣ Set up Docker to use Minikube
       - name: Configure Docker for Minikube
         run: |
           eval $(minikube -p minikube docker-env)
 
-      # 3️⃣ Set image tag using short Git commit hash
       - name: Set image tag
         id: vars
         run: echo "IMAGE_TAG=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      # 4️⃣ Build Docker image
       - name: Build Docker image
         run: |
           docker build -t flask-app:${{ env.IMAGE_TAG }} .
 
-      # 5️⃣ Apply Kubernetes manifests if first deployment
+      # ✅ Run tests inside Docker
+      - name: Run Tests
+        run: |
+          docker run --rm flask-app:${{ env.IMAGE_TAG }} pytest tests/
+
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f flask-deployment.yaml
           kubectl apply -f flask-service.yaml
 
-      # 6️⃣ Update deployment with new image
       - name: Update Kubernetes deployment
         run: |
           kubectl set image deployment/flask-app-deployment flask-app=flask-app:${{ env.IMAGE_TAG }}
           kubectl rollout status deployment/flask-app-deployment
 
-      # 7️⃣ Optional: Check pods status
       - name: Get Pods
         run: |
           kubectl get pods
-
 

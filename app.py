@@ -10,7 +10,7 @@ def login():
 
         # simple check (no database needed)
         if username == "admin" and password == "admin":
-            return "Login Successful!"
+            return "Login Successful Buddy!"
         else:
             return "Invalid Credentials!"
 

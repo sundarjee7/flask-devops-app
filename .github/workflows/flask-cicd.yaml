@@ -1,45 +1,47 @@
 name: Flask CI/CD Pipeline
 
+# Trigger pipeline on push to main branch
 on:
   push:
     branches:
       - main
 
+# Use self-hosted runner (or remove `self-hosted` if using GitHub hosted runner)
 jobs:
-  build-deploy:
+  build-and-deploy:
     runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
 
-      - name: Configure Docker for Minikube
-        run: |
-          eval $(minikube -p minikube docker-env)
+    # 1️⃣ Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Set image tag
-        id: vars
-        run: echo "IMAGE_TAG=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+    # 2️⃣ Set up Docker (required for GitHub hosted runners; optional for self-hosted)
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
 
-      - name: Build Docker image
-        run: |
-          docker build -t flask-app:${{ env.IMAGE_TAG }} .
+    # 3️⃣ Build Docker image
+    - name: Build Docker image
+      run: |
+        docker build -t flask-app:latest .
 
-      # ✅ Run tests inside Docker
-      - name: Run Tests
-        run: |
-          docker run --rm flask-app:${{ env.IMAGE_TAG }} pytest tests/
+    # 4️⃣ Run tests inside Docker
+    - name: Run pytest
+      run: |
+        docker run --rm -w /app flask-app:latest pytest tests/
 
-      - name: Apply Kubernetes manifests
-        run: |
-          kubectl apply -f flask-deployment.yaml
-          kubectl apply -f flask-service.yaml
+    # 5️⃣ Stop old container (ignore errors if not running)
+    - name: Stop old container
+      run: |
+        docker stop flask-app-container || true
+        docker rm flask-app-container || true
 
-      - name: Update Kubernetes deployment
-        run: |
-          kubectl set image deployment/flask-app-deployment flask-app=flask-app:${{ env.IMAGE_TAG }}
-          kubectl rollout status deployment/flask-app-deployment
+    # 6️⃣ Run new container
+    - name: Run Flask container
+      run: |
+        docker run -d --name flask-app-container -p 5000:5000 flask-app:latest
 
-      - name: Get Pods
-        run: |
-          kubectl get pods
+    # 7️⃣ Optional: Verify container running
+    - name: List running containers
+      run: docker ps
 

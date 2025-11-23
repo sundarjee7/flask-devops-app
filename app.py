@@ -1,19 +1,24 @@
-from flask import Flask, render_template, request
-from prometheus_client import Counter, generate_latest  # Import Prometheus client
+from flask import Flask, render_template, request, Response
+from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 
 app = Flask(__name__)
 
 # ---------- Prometheus metrics setup ----------
-REQUEST_COUNT = Counter('app_requests_total', 'Total HTTP Requests')
+REQUEST_COUNT = Counter(
+    'app_requests_total',
+    'Total number of HTTP requests served'
+)
 
 @app.before_request
 def before_request():
-    REQUEST_COUNT.inc()  # Increment request count on every request
+    # Prevent Prometheus scrapes from incrementing the counter
+    if request.path != "/metrics":
+        REQUEST_COUNT.inc()
 
 @app.route('/metrics')
 def metrics():
-    return generate_latest()  # Expose metrics for Prometheus
-# ---------------------------------------------
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+# ----------------------------------------------
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -21,7 +26,6 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
 
-        # simple check (no database needed)
         if username == "admin" and password == "admin":
             return "Login Successful Buddy!"
         else:

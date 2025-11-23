@@ -14,12 +14,22 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: flask-app:latest  # The image tag will be updated by GitHub Actions
+          image: flask-app:c5ea9a4c08e6
           ports:
             - containerPort: 5000
           env:
             - name: PORT
               value: "5000"
+            - name: USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: flask-app-secret
+                  key: USERNAME
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: flask-app-secret
+                  key: PASSWORD
 ---
 apiVersion: v1
 kind: Service
@@ -34,3 +44,4 @@ spec:
       port: 5000
       targetPort: 5000
       nodePort: 30001
+

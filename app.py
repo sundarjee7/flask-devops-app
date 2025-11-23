@@ -1,6 +1,19 @@
 from flask import Flask, render_template, request
+from prometheus_client import Counter, generate_latest  # Import Prometheus client
 
 app = Flask(__name__)
+
+# ---------- Prometheus metrics setup ----------
+REQUEST_COUNT = Counter('app_requests_total', 'Total HTTP Requests')
+
+@app.before_request
+def before_request():
+    REQUEST_COUNT.inc()  # Increment request count on every request
+
+@app.route('/metrics')
+def metrics():
+    return generate_latest()  # Expose metrics for Prometheus
+# ---------------------------------------------
 
 @app.route('/', methods=['GET', 'POST'])
 def login():

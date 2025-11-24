@@ -1,22 +1,23 @@
-# Dockerfile
-FROM python:3.9-slim
+# Dockerfile - Flask app with Prometheus metrics
+FROM python:3.11-slim
 
-# Set working directory
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-# Copy requirements and install
+# system deps for optional things
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install python deps
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install pytest
 
-# Copy app code, tests, and templates
-COPY app.py .
-COPY tests/ ./tests/
-COPY templates/ ./templates/
+# Copy app code and templates
+COPY . .
 
-# Expose port
 EXPOSE 5000
 
-# Run app
-CMD ["python", "app.py"]
+# Use gunicorn for production-like run
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
 

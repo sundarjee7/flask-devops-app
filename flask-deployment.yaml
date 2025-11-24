@@ -1,7 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: flask-app-deployment
+  name: flask-app
+  labels:
+    app: flask-app
 spec:
   replicas: 2
   selector:
@@ -14,34 +16,13 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: flask-app:c5ea9a4c08e6
+          image: your-dockerhub-username/flask-assessment:latest
           ports:
             - containerPort: 5000
-          env:
-            - name: PORT
-              value: "5000"
-            - name: USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: flask-app-secret
-                  key: USERNAME
-            - name: PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: flask-app-secret
-                  key: PASSWORD
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: flask-app-service
-spec:
-  selector:
-    app: flask-app
-  type: NodePort
-  ports:
-    - protocol: TCP
-      port: 5000
-      targetPort: 5000
-      nodePort: 30001
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
 
